@@ -162,9 +162,7 @@ def train(data_loader, data_size, batch_size, embedding_dim, hidden_dim,
 
 
         # 定义要记录的正确总实体数, 识别实体数以及真实实体数
-        total_acc_entities_length, \
-        total_predict_entities_length, \
-        total_gold_entities_length = 0, 0, 0
+        total_acc_entities_length, total_predict_entities_length, total_gold_entities_length = 0, 0, 0
         # 定义每batch步数, 批次loss总值, 准确度, f1值
         step, total_loss, correct, f1 = 1, 0.0, 0, 0
 
@@ -182,12 +180,7 @@ def train(data_loader, data_size, batch_size, embedding_dim, hidden_dim,
             # 获取解码最佳路径列表, 此时调用的是BiLSTM_CRF类中的forward()函数
             best_path_list = model(inputs)
             # 模型评估指标值获取: 当前批次准确率, 召回率, F1值以及对应的实体个数
-            step_acc, step_recall, f1_score, acc_entities_length, \
-            predict_entities_length, gold_entities_length = evaluate(inputs.tolist(),
-                                                                     labels.tolist(),
-                                                                     best_path_list,
-                                                                     id2char,
-                                                                     id2tag)
+            step_acc, step_recall, f1_score, acc_entities_length, predict_entities_length, gold_entities_length = evaluate(inputs.tolist(), labels.tolist(), best_path_list, id2char, id2tag)
 
             # 训练日志内容
             log_text = "Epoch: %s | Step: %s " \
@@ -208,7 +201,10 @@ def train(data_loader, data_size, batch_size, embedding_dim, hidden_dim,
         # 获取当前批次平均损失值(每一批次损失总值除以数据量)
         epoch_loss = total_loss / data_size["validation"]
         # 计算总批次准确率
-        total_acc = total_acc_entities_length / total_predict_entities_length
+        if total_predict_entities_length == 0:
+            total_acc = 0
+        else:
+            total_acc = total_acc_entities_length / total_predict_entities_length
         # 计算总批次召回率
         total_recall = total_acc_entities_length / total_gold_entities_length
         # 计算总批次F1值

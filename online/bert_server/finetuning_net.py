@@ -50,6 +50,3 @@ class Net(nn.Module):
 # net = Net(char_size, embedding_size, dropout)
 # res = net(x)
 # print(res)
-
-
-
