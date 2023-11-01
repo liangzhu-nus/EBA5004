@@ -122,51 +122,51 @@ def build_model_input_list(content, char_ids, batch_size, sentence_length, offse
     return model_input_list, model_input_map_list
 
 
-# 参数1:待识别文本
-content = "本病是由DNA病毒的单纯疱疹病毒所致。人类单纯疱疹病毒分为两型，" \
-"即单纯疱疹病毒Ⅰ型（HSV-Ⅰ）和单纯疱疹病毒Ⅱ型（HSV-Ⅱ）。" \
-"Ⅰ型主要引起生殖器以外的皮肤黏膜（口腔黏膜）和器官（脑）的感染。" \
-"Ⅱ型主要引起生殖器部位皮肤黏膜感染。" \
-"病毒经呼吸道、口腔、生殖器黏膜以及破损皮肤进入体内，" \
-"潜居于人体正常黏膜、血液、唾液及感觉神经节细胞内。" \
-"当机体抵抗力下降时，如发热胃肠功能紊乱、月经、疲劳等时，" \
-"体内潜伏的HSV被激活而发病。"
-# 参数2:模型保存文件路径
-model_path = f"{CURRENT_DIR}/model/bilstm_crf_state_dict_20200129_210417.pt"
-# 参数3:批次大小
-BATCH_SIZE = 8
-# 参数4:字向量维度
-EMBEDDING_DIM = 300
-# 参数5:隐层维度
-HIDDEN_DIM = 128
-NUM_LAYERS = 1
-# 参数6:句子长度
-SENTENCE_LENGTH = 100
-# 参数7:偏移量
-OFFSET = 10
-# 参数8:标签码表对照字典
-tag_to_id = {"O": 0, "B-dis": 1, "I-dis": 2, "B-sym": 3, "I-sym": 4, "<START>": 5, "<STOP>": 6}
-# 参数9:字符码表文件路径
-char_to_id_json_path = f"{CURRENT_DIR}/data/char_to_id.json"
-# 参数10:预测结果存储路径
-prediction_result_path = f"{CURRENT_DIR}/prediction_result"
-# 参数11:待匹配标签类型
-target_type_list = ["sym"]
+# # 参数1:待识别文本
+# content = "本病是由DNA病毒的单纯疱疹病毒所致。人类单纯疱疹病毒分为两型，" \
+# "即单纯疱疹病毒Ⅰ型（HSV-Ⅰ）和单纯疱疹病毒Ⅱ型（HSV-Ⅱ）。" \
+# "Ⅰ型主要引起生殖器以外的皮肤黏膜（口腔黏膜）和器官（脑）的感染。" \
+# "Ⅱ型主要引起生殖器部位皮肤黏膜感染。" \
+# "病毒经呼吸道、口腔、生殖器黏膜以及破损皮肤进入体内，" \
+# "潜居于人体正常黏膜、血液、唾液及感觉神经节细胞内。" \
+# "当机体抵抗力下降时，如发热胃肠功能紊乱、月经、疲劳等时，" \
+# "体内潜伏的HSV被激活而发病。"
+# # 参数2:模型保存文件路径
+# model_path = f"{CURRENT_DIR}/model/bilstm_crf_state_dict_20200129_210417.pt"
+# # 参数3:批次大小
+# BATCH_SIZE = 8
+# # 参数4:字向量维度
+# EMBEDDING_DIM = 300
+# # 参数5:隐层维度
+# HIDDEN_DIM = 128
+# NUM_LAYERS = 1
+# # 参数6:句子长度
+# SENTENCE_LENGTH = 100
+# # 参数7:偏移量
+# OFFSET = 10
+# # 参数8:标签码表对照字典
+# tag_to_id = {"O": 0, "B-dis": 1, "I-dis": 2, "B-sym": 3, "I-sym": 4, "<START>": 5, "<STOP>": 6}
+# # 参数9:字符码表文件路径
+# char_to_id_json_path = f"{CURRENT_DIR}/data/char_to_id.json"
+# # 参数10:预测结果存储路径
+# prediction_result_path = f"{CURRENT_DIR}/prediction_result"
+# # 参数11:待匹配标签类型
+# target_type_list = ["sym"]
 
-# 单独文本预测, 获得实体结果
-entities = singel_predict(model_path,
-                          content,
-                          char_to_id_json_path,
-                          BATCH_SIZE,
-                          EMBEDDING_DIM,
-                          HIDDEN_DIM,
-                          NUM_LAYERS,
-                          SENTENCE_LENGTH,
-                          OFFSET,
-                          target_type_list,
-                          tag_to_id)
-# 打印实体结果
-print("entities:\n", entities)
+# # 单独文本预测, 获得实体结果
+# entities = singel_predict(model_path,
+#                           content,
+#                           char_to_id_json_path,
+#                           BATCH_SIZE,
+#                           EMBEDDING_DIM,
+#                           HIDDEN_DIM,
+#                           NUM_LAYERS,
+#                           SENTENCE_LENGTH,
+#                           OFFSET,
+#                           target_type_list,
+#                           tag_to_id)
+# # 打印实体结果
+# print("entities:\n", entities)
 
 
 def batch_predict(data_path, model_path, char_to_id_json_path, batch_size, embedding_dim,
