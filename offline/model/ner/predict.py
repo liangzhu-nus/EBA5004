@@ -8,7 +8,7 @@ CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 def singel_predict(model_path, content, char_to_id_json_path, batch_size, embedding_dim,
-                   hidden_dim, num_layers, sentence_length, offset, target_type_list, tag2id):
+                   hidden_dim, num_layers, sentence_length, offset, target_type_list, tag_to_id):
 
     char_to_id = json.load(open(char_to_id_json_path, mode="r", encoding="utf-8"))
     # 将字符串转为码表id列表
@@ -22,7 +22,7 @@ def singel_predict(model_path, content, char_to_id_json_path, batch_size, embedd
                                                                      offset)
     # 加载模型
     model = BiLSTM_CRF(vocab_size=len(char_to_id),
-                       tag_to_ix=tag2id,
+                       tag_to_ix=tag_to_id,
                        embedding_dim=embedding_dim,
                        hidden_dim=hidden_dim,
                        batch_size=batch_size,
@@ -122,15 +122,13 @@ def build_model_input_list(content, char_ids, batch_size, sentence_length, offse
     return model_input_list, model_input_map_list
 
 
-# # 参数1:待识别文本
-# content = "本病是由DNA病毒的单纯疱疹病毒所致。人类单纯疱疹病毒分为两型，" \
-# "即单纯疱疹病毒Ⅰ型（HSV-Ⅰ）和单纯疱疹病毒Ⅱ型（HSV-Ⅱ）。" \
-# "Ⅰ型主要引起生殖器以外的皮肤黏膜（口腔黏膜）和器官（脑）的感染。" \
-# "Ⅱ型主要引起生殖器部位皮肤黏膜感染。" \
-# "病毒经呼吸道、口腔、生殖器黏膜以及破损皮肤进入体内，" \
-# "潜居于人体正常黏膜、血液、唾液及感觉神经节细胞内。" \
-# "当机体抵抗力下降时，如发热胃肠功能紊乱、月经、疲劳等时，" \
-# "体内潜伏的HSV被激活而发病。"
+# 参数1:待识别文本
+content = "本病是由DNA病毒的单纯疱疹病毒所致。人类单纯疱疹病毒分为两型，即单纯疱疹病毒Ⅰ型（HSV-Ⅰ）和单纯疱疹病毒Ⅱ型（HSV-Ⅱ）。Ⅰ型主要引起生殖器以外的皮肤黏膜（口腔黏膜）和器官（脑）的感染。Ⅱ型主要引起生殖器部位皮肤黏膜感染。" \
+"" \
+"病毒经呼吸道、口腔、生殖器黏膜以及破损皮肤进入体内，" \
+"潜居于人体正常黏膜、血液、唾液及感觉神经节细胞内。" \
+"当机体抵抗力下降时，如发热胃肠功能紊乱、月经、疲劳等时，" \
+"体内潜伏的HSV被激活而发病。"
 # 参数2:模型保存文件路径
 model_path = f"{CURRENT_DIR}/model/bilstm_crf_state_dict.pt"
 # 参数3:批次大小
@@ -153,27 +151,27 @@ prediction_result_path = f"{CURRENT_DIR}/prediction_result"
 # 参数11:待匹配标签类型
 target_type_list = ["sym"]
 
-# # 单独文本预测, 获得实体结果
-# entities = singel_predict(model_path,
-#                           content,
-#                           char_to_id_json_path,
-#                           BATCH_SIZE,
-#                           EMBEDDING_DIM,
-#                           HIDDEN_DIM,
-#                           NUM_LAYERS,
-#                           SENTENCE_LENGTH,
-#                           OFFSET,
-#                           target_type_list,
-#                           tag_to_id)
-# # 打印实体结果
-# print("entities:\n", entities)
+# 单独文本预测, 获得实体结果
+entities = singel_predict(model_path,
+                          content,
+                          char_to_id_json_path,
+                          BATCH_SIZE,
+                          EMBEDDING_DIM,
+                          HIDDEN_DIM,
+                          NUM_LAYERS,
+                          SENTENCE_LENGTH,
+                          OFFSET,
+                          target_type_list,
+                          tag_to_id)
+# 打印实体结果
+print("entities:\n", entities)
 
 
 def batch_predict(data_path, model_path, char_to_id_json_path, batch_size, embedding_dim,
-                  hidden_dim, sentence_length, offset, target_type_list,
+                  hidden_dim, num_layers, sentence_length, offset, target_type_list,
                   prediction_result_path, tag_to_id):
     """
-    description: 批量预测，查询文件目录下数据, 
+    description: 批量预测，查询文件目录下数据,
                  从中提取符合条件的实体并存储至新的目录下prediction_result_path
     :param data_path:               数据文件路径
     :param model_path:              模型文件路径
@@ -202,15 +200,15 @@ def batch_predict(data_path, model_path, char_to_id_json_path, batch_size, embed
             content = f.readline()
             # 调用单个预测模型，输出为目标类型实体文本列表
             entities = singel_predict(model_path, content, char_to_id_json_path,
-                                      batch_size, embedding_dim, hidden_dim, sentence_length,
+                                      batch_size, embedding_dim, hidden_dim, num_layers, sentence_length,
                                       offset, target_type_list, tag_to_id)
             # 写入识别结果文件
             entities_file.write("\n".join(entities))
     print("batch_predict Finished".center(100, "-"))
 
 
-data_path = "origin_data"
+data_path = os.path.dirname(os.path.dirname(CURRENT_DIR)) + '/datasets/unstructured/norecognized'
 
 # 进行批量预测函数的调用
-batch_predict(data_path, model_path, char_to_id_json_path, BATCH_SIZE, EMBEDDING_DIM, HIDDEN_DIM, SENTENCE_LENGTH,
+batch_predict(data_path, model_path, char_to_id_json_path, BATCH_SIZE, EMBEDDING_DIM, HIDDEN_DIM, NUM_LAYERS, SENTENCE_LENGTH,
               OFFSET, target_type_list, prediction_result_path, tag_to_id)
