@@ -131,27 +131,27 @@ def build_model_input_list(content, char_ids, batch_size, sentence_length, offse
 # "潜居于人体正常黏膜、血液、唾液及感觉神经节细胞内。" \
 # "当机体抵抗力下降时，如发热胃肠功能紊乱、月经、疲劳等时，" \
 # "体内潜伏的HSV被激活而发病。"
-# # 参数2:模型保存文件路径
-# model_path = f"{CURRENT_DIR}/model/bilstm_crf_state_dict_20200129_210417.pt"
-# # 参数3:批次大小
-# BATCH_SIZE = 8
-# # 参数4:字向量维度
-# EMBEDDING_DIM = 300
-# # 参数5:隐层维度
-# HIDDEN_DIM = 128
-# NUM_LAYERS = 1
-# # 参数6:句子长度
-# SENTENCE_LENGTH = 100
-# # 参数7:偏移量
-# OFFSET = 10
-# # 参数8:标签码表对照字典
-# tag_to_id = {"O": 0, "B-dis": 1, "I-dis": 2, "B-sym": 3, "I-sym": 4, "<START>": 5, "<STOP>": 6}
-# # 参数9:字符码表文件路径
-# char_to_id_json_path = f"{CURRENT_DIR}/data/char_to_id.json"
-# # 参数10:预测结果存储路径
-# prediction_result_path = f"{CURRENT_DIR}/prediction_result"
-# # 参数11:待匹配标签类型
-# target_type_list = ["sym"]
+# 参数2:模型保存文件路径
+model_path = f"{CURRENT_DIR}/model/bilstm_crf_state_dict.pt"
+# 参数3:批次大小
+BATCH_SIZE = 8
+# 参数4:字向量维度
+EMBEDDING_DIM = 300
+# 参数5:隐层维度
+HIDDEN_DIM = 128
+NUM_LAYERS = 1
+# 参数6:句子长度
+SENTENCE_LENGTH = 100
+# 参数7:偏移量
+OFFSET = 10
+# 参数8:标签码表对照字典
+tag_to_id = {"O": 0, "B-dis": 1, "I-dis": 2, "B-sym": 3, "I-sym": 4, "<START>": 5, "<STOP>": 6}
+# 参数9:字符码表文件路径
+char_to_id_json_path = f"{CURRENT_DIR}/data/char_to_id.json"
+# 参数10:预测结果存储路径
+prediction_result_path = f"{CURRENT_DIR}/prediction_result"
+# 参数11:待匹配标签类型
+target_type_list = ["sym"]
 
 # # 单独文本预测, 获得实体结果
 # entities = singel_predict(model_path,
@@ -209,7 +209,7 @@ def batch_predict(data_path, model_path, char_to_id_json_path, batch_size, embed
     print("batch_predict Finished".center(100, "-"))
 
 
-data_path = f"{CURRENT_DIR}/data/train.npz"
+data_path = "origin_data"
 
 # 进行批量预测函数的调用
 batch_predict(data_path, model_path, char_to_id_json_path, BATCH_SIZE, EMBEDDING_DIM, HIDDEN_DIM, SENTENCE_LENGTH,
