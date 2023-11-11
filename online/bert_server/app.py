@@ -5,7 +5,7 @@ import torch
 # 导入中文预训练模型的编码函数
 from bert_chinese_encode import get_bert_encode
 # 导入微调网络模型
-from finetuning_net import Net
+from online.bert_server.downstream_net import Net
 
 # 设置训练好的模型路径
 MODEL_PATH = "./model/BERT_net.pth"

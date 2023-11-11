@@ -2,259 +2,194 @@ import pandas as pd
 from sklearn.utils import shuffle
 from functools import reduce
 from collections import Counter
-# from bert_chinese_encode import get_bert_encode
+from bert_chinese_encode import get_bert_encode
 import torch
 import torch.nn as nn
 import time
 import os
-from finetuning_net import Net
+from downstream_net import DownStream_Net
 import torch.optim as optim
-from transformers import BertTokenizer, BertModel
-
-###################
-
-
-# 加载字符映射器
-tokenizer = BertTokenizer.from_pretrained('bert-base-chinese')
-
-# 加载预训练中文模型
-model = BertModel.from_pretrained('bert-base-chinese')
-
-
-# 编写获取bert编码的函数
-def get_bert_encode(text_1, text_2, mark=102, max_len=10):
-    '''
-    功能: 使用bert中文模型对输入的文本进行编码
-    text_1: 代表输入的第一句话
-    text_2: 代表输入的第二句话
-    mark: 分隔标记, 是bert预训练模型tokenizer的一个自身特殊标记, 当输入两个文本的时候, 有中间的特殊分隔符, 102
-    max_len: 限制的最大语句长度, 如果大于max_len, 进行截断处理, 如果小于max_len, 进行0填充的处理
-    return: 输入文本的bert编码
-    '''
-    # 第一步使用tokenizer进行两个文本的字映射
-    indexed_tokens = tokenizer.encode(text_1, text_2)
-    # 接下来要对两个文本进行补齐, 或者截断的操作
-    # 首先要找到分隔标记的位置
-    k = indexed_tokens.index(mark)
-
-    # 第二步处理第一句话, 第一句话是[:k]
-    if len(indexed_tokens[:k]) >= max_len:
-        # 长度大于max_len, 进行截断处理
-        indexed_tokens_1 = indexed_tokens[:max_len]
-    else:
-        # 长度小于max_len, 需要对剩余的部分进行0填充
-        indexed_tokens_1 = indexed_tokens[:k] + (max_len - len(indexed_tokens[:k])) * [0]
-
-    # 第三步处理第二句话, 第二句话是[k:]
-    if len(indexed_tokens[k:]) >= max_len:
-        # 长度大于max_len, 进行截断处理
-        indexed_tokens_2 = indexed_tokens[k:k+max_len]
-    else:
-        # 长度小于max_len, 需要对剩余的部分进行0填充
-        indexed_tokens_2 = indexed_tokens[k:] + (max_len - len(indexed_tokens[k:])) * [0]
-
-    # 接下来将处理后的indexed_tokens_1和indexed_tokens_2进行相加合并
-    indexed_tokens = indexed_tokens_1 + indexed_tokens_2
-
-    # 需要一个额外的标志列表, 来告诉模型那部分是第一句话, 哪部分是第二句话
-    # 利用0元素来表示第一句话, 利用1元素来表示第二句话
-    # 注意: 两句话的长度都已经被我们规范成了max_len
-    segments_ids = [0] * max_len + [1] * max_len
-   
-    # 利用torch.tensor将两个列表封装成张量
-    tokens_tensor = torch.tensor([indexed_tokens])
-    segments_tensor = torch.tensor([segments_ids])
-
-    # 利用模型进行编码不求导
-    with torch.no_grad():
-        # 使用bert模型进行编码, 传入参数tokens_tensor和segments_tensor, 最终得到模型的输出encoded_layers
-        last_hidden_state = model(tokens_tensor, token_type_ids=segments_tensor)[0]
-
-    return last_hidden_state
-
-   
-# text_1 = "人生该如何起头"
-# text_2 = "改变要如何起手"
-
-# last_hidden_state = get_bert_encode(text_1, text_2)
-# print('encoded_layers', last_hidden_state)
-# print('encoded_layers.shape', last_hidden_state.shape)
-
-###################
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
-# # 定义数据加载器构造函数
-# def data_loader(data_path, batch_size, split=0.2):
-#     '''
-#     data_path: 训练数据的路径
-#     batch_size: 训练集和验证集的批次大小
-#     split: 训练集和验证集的划分比例
-#     return: 训练数据生成器, 验证数据的生成器, 训练数据的大小, 验证数据的大小
-#     '''
+# 定义数据加载器构造函数
+def data_loader(data_path, batch_size, split=0.2):
+    """定义数据加载器构造函数
 
-#     print('read-data')
-#     # 首先读取数据
-#     data = pd.read_csv(data_path, header=None, sep="\t")
+    Args:
+        data_path (_type_): 训练数据的路径
+        batch_size (_type_): 训练集和验证集的批次大小
+        split (float, optional): 训练集和验证集的划分比例. Defaults to 0.2.
 
-#     # 打印一下整体数据集上正负样本的数量
-#     print("数据集的正负样本数量:")
-#     print(dict(Counter(data[0].values)))
+    Returns:
+        _type_: 训练数据生成器, 验证数据的生成器, 训练数据的大小, 验证数据的大小
 
-#     # 要对读取的数据进行散乱顺序的操作
-#     data = shuffle(data).reset_index(drop=True)
+    Yields:
+        _type_: _description_
+    """
 
-#     # 划分训练集和验证集
-#     split_point = int(len(data) * split)
-#     valid_data = data[:split_point]
-#     train_data = data[split_point:]
+    print('read-data')
+    # 首先读取数据
+    data = pd.read_csv(data_path, header=None, sep="\t")
 
-#     # 保证验证集中的数据总数至少能够满足一个批次
-#     if len(valid_data) < batch_size:
-#         raise ("Batch size or split not match!")
+    # 打印一下整体数据集上正负样本的数量
+    print("数据集的正负样本数量:")
+    print(dict(Counter(data[0].values)))
 
-#     # 定义获取每个批次数据生成器的函数
-#     def _loader_generator(data):
-#         # data: 训练数据或者验证数据
-#         # 以每个批次大小的间隔来遍历数据集
-#         for batch in range(0, len(data), batch_size):
-#             # 初始化batch数据的存放张量列表
-#             batch_encoded = []
-#             batch_labels = []
-#             # 逐条进行数据的遍历
-#             for item in data[batch: batch + batch_size].values.tolist():
-#                 # 对每条数据进行bert预训练模型的编码
-#                 encoded = get_bert_encode(item[1], item[2])
-#                 # 将编码后的每条数据放进结果列表中
-#                 batch_encoded.append(encoded)
-#                 # 将标签放入结果列表中
-#                 batch_labels.append([item[0]])
+    # 要对读取的数据进行散乱顺序的操作
+    data = shuffle(data).reset_index(drop=True)
 
-#             # 使用reduce高阶函数将列表中的数据转换成模型需要的张量形式
-#             # encoded的形状[batch_size, 2 * max_len, embedding_size]
-#             encoded = reduce(lambda x, y: torch.cat((x, y), dim=0), batch_encoded)
-#             labels = torch.tensor(reduce(lambda x, y: x + y, batch_labels))
-#             # 以生成器的方式返回数据和标签
-#             yield (encoded, labels)
+    # 划分训练集和验证集
+    split_point = int(len(data) * split)
+    valid_data = data[:split_point]
+    train_data = data[split_point:]
 
-#     return _loader_generator(train_data), _loader_generator(valid_data), len(train_data), len(valid_data)
+    # 保证验证集中的数据总数至少能够满足一个批次
+    if len(valid_data) < batch_size:
+        raise ("Batch size or split not match!")
+
+    # 定义获取每个批次数据生成器的函数
+    def _loader_generator(data):
+        # data: 训练数据或者验证数据
+        # 以每个批次大小的间隔来遍历数据集
+        for batch in range(0, len(data), batch_size):
+            # 初始化batch数据的存放张量列表
+            batch_encoded = []
+            batch_labels = []
+            # 逐条进行数据的遍历
+            for item in data[batch: batch + batch_size].values.tolist():
+                # 对每条数据进行bert预训练模型的编码
+                encoded = get_bert_encode(item[1], item[2])
+                # 将编码后的每条数据放进结果列表中
+                batch_encoded.append(encoded)
+                # 将标签放入结果列表中
+                batch_labels.append([item[0]])
+
+            # 使用reduce高阶函数将列表中的数据转换成模型需要的张量形式
+            # encoded的形状[batch_size, 2 * max_len, embedding_size]
+            encoded = reduce(lambda x, y: torch.cat((x, y), dim=0), batch_encoded)
+            labels = torch.tensor(reduce(lambda x, y: x + y, batch_labels))
+            # 以生成器的方式返回数据和标签
+            yield (encoded, labels)
+
+    return _loader_generator(train_data), _loader_generator(valid_data), len(train_data), len(valid_data)
 
 
 data_path = f"{CURRENT_DIR}/datasets/train_data.csv"
 batch_size = 32
 max_len = 10
 
-# train_data_labels, valid_data_labels, train_data_length, valid_data_length = data_loader(data_path, batch_size)
-# # print(next(train_data_labels))
-# # print(next(valid_data_labels))
-# # print("train_data_length:", train_data_length)
-# # print("valid_data_length:", valid_data_length)
+train_data_labels, valid_data_labels, train_data_length, valid_data_length = data_loader(data_path, batch_size)
+print(next(train_data_labels))
+print(next(valid_data_labels))
+print("train_data_length:", train_data_length)
+print("valid_data_length:", valid_data_length)
 
-# # 初始化若干参数
-# embedding_size = 768
-# char_size = 2 * max_len
+# 初始化若干参数
+embedding_size = 768
+char_size = 2 * max_len
 
-# # 实例化微调网络
-# net = Net(embedding_size, char_size)
+# 实例化下游网络
+downstream_net = DownStream_Net(embedding_size, char_size)
 
-# # 定义交叉熵损失函数
-# criterion = nn.CrossEntropyLoss()
+# 定义交叉熵损失函数
+criterion = nn.CrossEntropyLoss()
 
-# # 定义优化器
-# optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
-
-
-# def train(train_data_labels):
-#     # train_data_labels: 代表训练数据和标签的生成器对象
-#     # return: 整个训练过程的平均损失和, 正确标签数量的累加和
-#     # 初始化损失变量和准确数量
-#     train_running_loss = 0.0
-#     train_running_acc = 0.0
-
-#     # 遍历数据生成器
-#     for train_tensor, train_labels in train_data_labels:
-#         # 首先将优化器的梯度归零
-#         optimizer.zero_grad()
-#         # 将训练数据传入模型得到输出结果
-#         train_outputs = net(train_tensor)
-#         # 计算当前批次的平均损失
-#         train_loss = criterion(train_outputs, train_labels)
-#         # 累加损失
-#         train_running_loss += train_loss.item()
-#         # 训练模型, 反向传播
-#         train_loss.backward()
-#         # 优化器更新模型参数
-#         optimizer.step()
-#         # 将该批次样本中正确的预测数量进行累加
-#         train_running_acc += (train_outputs.argmax(1) == train_labels).sum().item()
-
-#     # 整个循环结束后, 训练完毕, 得到损失和以及正确样本的总量
-#     return train_running_loss, train_running_acc
+# 定义优化器
+optimizer = optim.SGD(downstream_net.parameters(), lr=0.001, momentum=0.9)
 
 
-# def valid(valid_data_labels):
-#     # valid_data_labels: 代表验证数据和标签的生成器对象
-#     # return: 整个验证过程中的平均损失和和正确标签的数量和
-#     # 初始化损失值和正确标签数量
-#     valid_running_loss = 0.0
-#     valid_running_acc = 0
+def train(train_data_labels):
+    # train_data_labels: 代表训练数据和标签的生成器对象
+    # return: 整个训练过程的平均损失和, 正确标签数量的累加和
+    # 初始化损失变量和准确数量
+    train_running_loss = 0.0
+    train_running_acc = 0.0
 
-#     # 循环遍历验证数据集的生成器
-#     for valid_tensor, valid_labels in valid_data_labels:
-#         # 测试阶段梯度不被更新
-#         with torch.no_grad():
-#             # 将特征输入网络得到预测张量
-#             valid_outputs = net(valid_tensor)
-#             # 计算当前批次的损失值
-#             valid_loss = criterion(valid_outputs, valid_labels)
-#             # 累加损失和
-#             valid_running_loss += valid_loss.item()
-#             # 累加正确预测的标签数量
-#             valid_running_acc += (valid_outputs.argmax(1) == valid_labels).sum().item()
+    # 遍历数据生成器
+    for train_tensor, train_labels in train_data_labels:
+        # 首先将优化器的梯度归零
+        optimizer.zero_grad()
+        # 将训练数据传入模型得到输出结果
+        train_outputs = downstream_net(train_tensor)
+        # 计算当前批次的平均损失
+        train_loss = criterion(train_outputs, train_labels)
+        # 累加损失
+        train_running_loss += train_loss.item()
+        # 训练模型, 反向传播
+        train_loss.backward()
+        # 优化器更新模型参数
+        optimizer.step()
+        # 将该批次样本中正确的预测数量进行累加
+        train_running_acc += (train_outputs.argmax(1) == train_labels).sum().item()
 
-#     # 返回整个验证过程中的平均损失和, 累加的正确标签数量
-#     return valid_running_loss, valid_running_acc
+    # 整个循环结束后, 训练完毕, 得到损失和以及正确样本的总量
+    return train_running_loss, train_running_acc
 
 
-# epochs = 20
+def valid(valid_data_labels):
+    # valid_data_labels: 代表验证数据和标签的生成器对象
+    # return: 整个验证过程中的平均损失和和正确标签的数量和
+    # 初始化损失值和正确标签数量
+    valid_running_loss = 0.0
+    valid_running_acc = 0
 
-# # 定义每个轮次的损失和准确率的列表初始化, 用于未来画图
-# all_train_losses = []
-# all_valid_losses = []
-# all_train_acc = []
-# all_valid_acc = []
+    # 循环遍历验证数据集的生成器
+    for valid_tensor, valid_labels in valid_data_labels:
+        # 测试阶段梯度不被更新
+        with torch.no_grad():
+            # 将特征输入网络得到预测张量
+            valid_outputs = downstream_net(valid_tensor)
+            # 计算当前批次的损失值
+            valid_loss = criterion(valid_outputs, valid_labels)
+            # 累加损失和
+            valid_running_loss += valid_loss.item()
+            # 累加正确预测的标签数量
+            valid_running_acc += (valid_outputs.argmax(1) == valid_labels).sum().item()
 
-# for epoch in range(epochs):
-#     # 打印轮次
-#     print("Epoch:", epoch + 1)
-#     # 首先通过数据加载函数, 获得训练数据和验证数据的生成器, 以及对应的训练样本数和验证样本数
-#     train_data_labels, valid_data_labels, train_data_len, valid_data_len = data_loader(data_path, batch_size)
+    # 返回整个验证过程中的平均损失和, 累加的正确标签数量
+    return valid_running_loss, valid_running_acc
 
-#     # 调用训练函数进行训练
-#     train_running_loss, train_running_acc = train(train_data_labels)
-#     # 调用验证函数进行验证
-#     valid_running_loss, valid_running_acc = valid(valid_data_labels)
 
-#     # 计算平均损失, 每个批次的平均损失之和乘以批次样本数量, 再除以本轮次的样本总数
-#     train_average_loss = train_running_loss * batch_size / train_data_len
-#     valid_average_loss = valid_running_loss * batch_size / valid_data_len
+epochs = 20
 
-#     # 计算准确率, 本轮次总的准确样本数除以本轮次的总样本数
-#     train_average_acc = train_running_acc / train_data_len
-#     valid_average_acc = valid_running_acc / valid_data_len
+# 定义每个轮次的损失和准确率的列表初始化, 用于未来画图
+all_train_losses = []
+all_valid_losses = []
+all_train_acc = []
+all_valid_acc = []
 
-#     # 接下来将4个值添加进画图的列表中
-#     all_train_losses.append(train_average_loss)
-#     all_valid_losses.append(valid_average_loss)
-#     all_train_acc.append(train_average_acc)
-#     all_valid_acc.append(valid_average_acc)
+for epoch in range(epochs):
+    # 打印轮次
+    print("Epoch:", epoch + 1)
+    # 首先通过数据加载函数, 获得训练数据和验证数据的生成器, 以及对应的训练样本数和验证样本数
+    train_data_labels, valid_data_labels, train_data_len, valid_data_len = data_loader(data_path, batch_size)
 
-#     # 打印本轮次的训练损失, 准确率, 以及验证损失, 准确率
-#     print("Train Loss:", train_average_loss, "|", "Train Acc:", train_average_acc)
-#     print("Valid Loss:", valid_average_loss, "|", "Valid Acc:", valid_average_acc)
+    # 调用训练函数进行训练
+    train_running_loss, train_running_acc = train(train_data_labels)
+    # 调用验证函数进行验证
+    valid_running_loss, valid_running_acc = valid(valid_data_labels)
 
-# print("Finished Training.")
+    # 计算平均损失, 每个批次的平均损失之和乘以批次样本数量, 再除以本轮次的样本总数
+    train_average_loss = train_running_loss * batch_size / train_data_len
+    valid_average_loss = valid_running_loss * batch_size / valid_data_len
+
+    # 计算准确率, 本轮次总的准确样本数除以本轮次的总样本数
+    train_average_acc = train_running_acc / train_data_len
+    valid_average_acc = valid_running_acc / valid_data_len
+
+    # 接下来将4个值添加进画图的列表中
+    all_train_losses.append(train_average_loss)
+    all_valid_losses.append(valid_average_loss)
+    all_train_acc.append(train_average_acc)
+    all_valid_acc.append(valid_average_acc)
+
+    # 打印本轮次的训练损失, 准确率, 以及验证损失, 准确率
+    print("Train Loss:", train_average_loss, "|", "Train Acc:", train_average_acc)
+    print("Valid Loss:", valid_average_loss, "|", "Valid Acc:", valid_average_acc)
+
+print("Finished Training.")
 
 
 # # # 导入画图的工具包
@@ -304,9 +239,9 @@ max_len = 10
 # # plt.savefig("./acc.png")
 
 
-# # 保存模型时间
-# time_ = int(time.time())
-# # 设置保存路径和模型名称
-# MODEL_PATH = f'{CURRENT_DIR}/model/BERT_net_%d.pth' % time_
-# # 保存模型
-# torch.save(net.state_dict(), MODEL_PATH)
+# 保存模型时间
+time_ = int(time.time())
+# 设置保存路径和模型名称
+MODEL_PATH = f'{CURRENT_DIR}/model/BERT_net_%d.pth' % time_
+# 保存模型
+torch.save(downstream_net.state_dict(), MODEL_PATH)
