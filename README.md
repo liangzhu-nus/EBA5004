@@ -1,5 +1,51 @@
 # AI_liitle_p
+**项目简介：**
+根据用户输入症状来匹配对应疾病.
 Dialogue system fine-tuned based on BERT model, focusing mainly on disease symptoms
+
+
+## 命名实体识别
+**What：**
+本质：序列标注问题：使用BiLSTM+CRF模型。输出句子中每个字的标签。自定义标签：{"O": 0, "B-dis": 1, "I-dis": 2, "B-sym": 3, "I-sym": 4, START_TAG: 5, STOP_TAG: 6}。
+再转换为 以disease 为文件名，内容为症状的文件。
+
+训练代码：offline/model/ner/train.py
+训练数据：offline/model/ner/data/train.txt
+1. 将训练数据集转换为数字化编码集(根据中文字符向id的映射表)，生成了新的数据集文件 train.npz。
+2. 字嵌入或词嵌入作为BiLSTM+CRF模型的输入, 而输出的是句子中每个单元的标签.
+   2.1 BiLSTM层的输出为每一个标签的预测分值。标签是：tag_to_ix = {"O": 0, "B-dis": 1, "I-dis": 2, "B-sym": 3, "I-sym": 4, START_TAG: 5, STOP_TAG: 6}
+   2.2 CRF层可以为最后预测的标签添加一些约束来保证预测的标签是合法的. 在训练数据训练的过程中, 这些约束可以通过CRF层自动学习到.
+
+
+**输入输出：**
+将 offline/datasets/unstructured/norecognized 文件中的文本数据进行命名实体识别。
+
+
+
+## 命名实体审核
+**What:**
+审核文件中的症状，将不合法的症状剔除掉。
+文件说明：
+noreview 文件夹下，每一个文件名对应一种疾病名，文件中内容表示对应的症状。
+
+**输入输出**
+将 offline/structured/noreview 中的数据通过命名实体审核提取到 offline/structured/reviewed 文件夹下，并将审核后的数据写入到 neo4j 中。
+
+**How：**
+本质：短文本二分类问题.
+训练代码：offline/model/review/train.py
+训练数据：offline/model/review/train_data.py
+```
+1	手掌软硬度异常
+0	常异度硬软掌手
+1	多发性针尖样瘀点
+...
+```
+1. 使用了bert-chinese预训练模型获取 embedding 表示。
+2. 使用 RNN 来做二分类。
+3. 如果是同一类。识别文本中提及的疾病症状，并返回与这些症状相关联的疾病名称列表。
+
+
 
 ## 两个句子相关性
 数据集：online/bert_server/datasets/train_data.csv

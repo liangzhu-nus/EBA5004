@@ -154,7 +154,8 @@ def query_neo4j(text):
         # 构建查询的cypher语句, 匹配句子中存在的所有症状节点
         # 保存这些临时的节点, 并通过关系dis_to_sym进行对应疾病名称的查找, 返回找到的疾病名称列表
         cypher = "MATCH(a:Symptom) WHERE(%r contains a.name) WITH \
-                 a MATCH(a)-[r:dis_to_sym]-(b:Disease) RETURN b.name LIMIT 5" %text
+                 a MATCH(a)-[r:dis_to_sym]-(b:Disease) RETURN b.name LIMIT 5" \
+                 % text
         # 通过会话session来运行cypher语句
         record = session.run(cypher)
         # 从record中读取真正的疾病名称信息, 并封装成List返回
