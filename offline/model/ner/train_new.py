@@ -19,7 +19,7 @@ CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 def train(data_loader, data_size, batch_size, embedding_dim, hidden_dim,
           sentence_length, num_layers, epochs, learning_rate, tag2id,
           model_saved_path, train_log_path,
-          validate_log_path, train_history_image_path):
+          validate_log_path):
     '''
     data_loader: 数据集的加载器, 之前已经通过load_dataset完成了构造
     data_size:   训练集和测试集的样本数量
@@ -34,7 +34,6 @@ def train(data_loader, data_size, batch_size, embedding_dim, hidden_dim,
     model_saved_path: 模型保存的路径
     train_log_path:   训练日志保存的路径
     validate_log_path:  测试集日志保存的路径
-    train_history_image_path:  训练数据的相关图片保存路径
     '''
     # 将中文字符和id的对应码表加载进内存
     char2id = json.load(open(f"{CURRENT_DIR}/data/char_to_id.json", mode="r", encoding="utf-8"))
@@ -229,48 +228,6 @@ def train(data_loader, data_size, batch_size, embedding_dim, hidden_dim,
 
     # 保存模型
     torch.save(model.state_dict(), model_saved_path)
-
-    # 将loss下降历史数据转为图片存储
-    save_train_history_image(train_loss_list,
-                             validate_loss_list,
-                             train_history_image_path,
-                             "Loss")
-    # 将准确率提升历史数据转为图片存储
-    save_train_history_image(train_acc_list,
-                             validate_acc_list,
-                             train_history_image_path,
-                             "Acc")
-    # 将召回率提升历史数据转为图片存储
-    save_train_history_image(train_recall_list,
-                             validate_recall_list,
-                             train_history_image_path,
-                             "Recall")
-    # 将F1上升历史数据转为图片存储
-    save_train_history_image(train_f1_list,
-                             validate_f1_list,
-                             train_history_image_path,
-                             "F1")
-    print("train Finished".center(100, "-"))
-
-
-# 按照传入的不同路径, 绘制不同的训练曲线
-def save_train_history_image(train_history_list,
-                             validate_history_list,
-                             history_image_path,
-                             data_type):
-    # 根据训练集的数据列表, 绘制折线图
-    plt.plot(train_history_list, label="Train %s History" % (data_type))
-    # 根据测试集的数据列表, 绘制折线图
-    plt.plot(validate_history_list, label="Validate %s History" % (data_type))
-    # 将图片放置在最优位置
-    plt.legend(loc="best")
-    # 设置x轴的图标为轮次Epochs
-    plt.xlabel("Epochs")
-    # 设置y轴的图标为参数data_type
-    plt.ylabel(data_type)
-    # 将绘制好的图片保存在特定的路径下面, 并修改图片名字中的"plot"为对应的data_type
-    plt.savefig(history_image_path.replace("plot", data_type))
-    plt.close()
 
 
 # 参数1:批次大小

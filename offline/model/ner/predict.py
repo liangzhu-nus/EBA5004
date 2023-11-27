@@ -163,8 +163,6 @@ entities = singel_predict(model_path,
                           OFFSET,
                           target_type_list,
                           tag_to_id)
-# 打印实体结果
-print("entities:\n", entities)
 
 
 def batch_predict(data_path, model_path, char_to_id_json_path, batch_size, embedding_dim,
