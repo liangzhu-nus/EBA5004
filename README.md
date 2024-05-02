@@ -1,66 +1,182 @@
-# AI_liitle_p
-**项目简介：**
-根据用户输入症状来匹配对应疾病.
-Dialogue system fine-tuned based on BERT model, focusing mainly on disease symptoms
+# ISY5001
+## SECTION 1 : PROJECT TITLE
 
-
-## 命名实体识别
-
-**What：**
-整体流程：将文本信息(文本数字编码化)经过词嵌入层, BiLSTM层, 线性层的处理, 最终输出句子的张量。张量的最后一维是每一个word映射到7个标签的概率, 发射矩阵。
-使用维特比算法通过转移矩阵和发射矩阵得出最可能的序列，发射矩阵作为模型参数的一部分，通过模型训练得出。
-
-本质：序列标注问题：使用BiLSTM+CRF模型。输出句子中每个字的标签。自定义标签：{"O": 0, "B-dis": 1, "I-dis": 2, "B-sym": 3, "I-sym": 4, START_TAG: 5, STOP_TAG: 6}。
-再转换为 以disease 为文件名，内容为症状的文件。
-
-训练代码：offline/model/ner/train.py
-训练数据：offline/model/ner/data/train.txt
-1. 将训练数据集转换为数字化编码集(根据中文字符向id的映射表)，生成了新的数据集文件 train.npz。
-2. 字嵌入或词嵌入作为BiLSTM+CRF模型的输入, 而输出的是句子中每个单元的标签.
-   2.1 BiLSTM层的输出为每一个标签的预测分值（发射矩阵）。标签是：tag_to_ix = {"O": 0, "B-dis": 1, "I-dis": 2, "B-sym": 3, "I-sym": 4, START_TAG: 5, STOP_TAG: 6}
-   2.2 CRF层可以为最后预测的标签添加一些约束来保证预测的标签是合法的. 在训练数据训练的过程中, 这些约束可以通过CRF层自动学习到.（输入发射矩阵，输出最可能的概率序列）
-
-
-**输入输出：**
-将 offline/datasets/unstructured/norecognized 文件中的文本数据进行命名实体识别。
+### AI-Doctor - Task-oriented intelligent dialogue system.
 
 
 
-## 命名实体审核
-**What:**
-审核文件中的症状，将不合法的症状剔除掉。
-文件说明：
-noreview 文件夹下，每一个文件名对应一种疾病名，文件中内容表示对应的症状。
+## SECTION 2 : EXECUTIVE SUMMARY
 
-**输入输出**
-将 offline/structured/noreview 中的数据通过命名实体审核提取到 offline/structured/reviewed 文件夹下，并将审核后的数据写入到 neo4j 中。
 
-**How：**
-本质：短文本二分类问题.
-训练代码：offline/model/review/train.py
-训练数据：offline/model/review/train_data.py
+
+
+## SECTION 3 : VIDEO
+
+
+## SECTION 4 : USER GUIDE - How to start
+
+Notes:
+
+* This installation manual is only available for operating systems: **CentOS7**.
+
+
+1. Install the Anaconda scientific computing environment, including python, pip, pandas, numpy, matplotplib and other scientific computing packages.
+
+```shell
+# Install the environment package in the /root/ directory
+cd /root
+curl -O https://repo.anaconda.com/archive/Anaconda3-5.2.0-Linux-x86_64.sh
+sh Anaconda3-2019.07-Linux-x86_64.sh 
+
+# Configure ~/.bashrc: 
+export PATH=/root/anaconda/bin/:$PATH # Add a line
 ```
-1	手掌软硬度异常
-0	常异度硬软掌手
-1	多发性针尖样瘀点
-...
+
+2. Several stand-alone tools are required to install the project.
+
+```shell
+# Install Flask
+pip install Flask==1.1.1
+
+# Install Redis database
+yum install redis -y
+
+# Install the Redis driver in Python
+pip install redis
+
+# Install gunicorn
+pip install gunicorn==20.0.4
+
+# Install supervisor
+yum install supervisor -y
+
+# Install lsof
+yum install lsof -y
+
+# Install pytorch
+pip install pytorch
 ```
-1. 使用了bert-chinese预训练模型获取 embedding 表示。
-2. 使用 RNN 来做二分类。
-3. 如果是同一类。识别文本中提及的疾病症状，并返回与这些症状相关联的疾病名称列表。
+
+3. Installing the graph database neo4j.
+
+```shell
+# Step 1: Load the neo4j installation information into the yum search list
+cd /tmp
+wget http://debian.neo4j.org/neotechnology.gpg.key
+rpm --import neotechnology.gpg.key
+cat <<EOF>  /etc/yum.repos.d/neo4j.repo
+# Write the following
+[neo4j]
+name=Neo4j RPM Repository
+baseurl=http://yum.neo4j.org/stable
+enabled=1
+gpgcheck=1
+
+# Step 2: Use the yum install command to install
+yum install neo4j-3.3.5
+
+# Step 3: Use your own configuration file
+cp /data/neo4j.conf /etc/neo4j/neo4j.conf
+```
+
+4. Start the neo4j graph database and check the status.
+
+```shell
+# Start the neo4j command
+neo4j start
+
+# View Status command
+neo4j status
+```
+
+5. Use scripts to generate graphs.
+
+```shell
+# Execute the script code that has been written and write the data to the neo4j database
+python /data/doctor_offline/neo4j_write.py
+```
+
+6. Use scripts to train models.
+
+```shell
+# There is only one model bert-Chinese in the online part
+cd /data/doctor_online/bert_server/
+python train.py
+```
+
+7. Start the WeRobot service in a pending manner.
+
+```shell
+# Start the werobot service, so that users can complete the conversation with the AI doctor through the WeChat interface.
+nohup python /data/wr.py &
+```
+
+8. Use supervisor to start the main logical service and its Redis service.
+
+```shell
+# supervisor configuration file brief analysis
+# File path location: /data/doctor_online/main_serve/supervisor.conf
+
+# Use gunicorn to launch the main logical service based on the Flask framework
+[program:main_server]
+command=gunicorn -w 1 -b 0.0.0.0:5000 app:app                    ; the program (relative uses PATH, can take args)
+stopsignal=QUIT               ; signal used to kill process (default TERM)
+stopasgroup=false             ; send stop signal to the UNIX process group (default false)
+killasgroup=false             ; SIGKILL the UNIX process group (def false)
+stdout_logfile=./log/main_server_out      ; stdout log path, NONE for none; default AUTO
+stdout_logfile_maxbytes=1MB   ; max # logfile bytes b4 rotation (default 50MB)
+stderr_logfile=./log/main_server_error        ; stderr log path, NONE for none; default AUTO
+stderr_logfile_maxbytes=1MB   ; max # logfile bytes b4 rotation (default 50MB)
+
+# Start the Redis service as a session management database
+[program:redis]
+command=redis-server
+```
+
+```shell
+# Use the supervisord command to read files in the specified directory
+supervisord -c /data/doctor_online/main_serve/supervisor.conf
+```
+
+```shell
+# Check the status of the started service
+supervisorctl status
+```
+
+9. Start the sentence-related model service in a suspended manner.
+
+
+```shell
+# Start the service in a suspended manner, the code is already pre-written 
+# The content in the script start.sh is gunicorn -w 1 -b 0.0.0.0:5001 app:app
+
+nohup sh /data/doctor_online/bert_serve/start.sh &
+```
+
+10. Start and view the neo4j service (graph data query):
+
+```shell
+# The neo4j service should have been up until now
+neo4j start
+
+# To view the service startup status:
+neo4j status
+```
+
+11. Take the test.
+
+```shell
+Test 1: Follow the official account (new user) and send "I have some abdominal pain recently".
+
+Test 2: (old users) After sending "I've had some abdominal pain lately", keep sending "And there are some red dots on the left side of the abdomen".
+```
 
 
 
-## 两个句子相关性
-数据集：online/bert_server/datasets/train_data.csv
-编码：使用 bert 对原始文本进行编码
-https://huggingface.co/docs/transformers/model_doc/bert
-步骤：
-1. 文本数据编码-feature encoding
-2. 下游分类任务模型
-3. 构建数据加载器函数.
-4. 构建模型训练函数.
-5. 构建模型验证函数.
-6. 调用训练和验证函数并打印日志.
-7. 绘制训练和验证的损失和准确率对照曲线.
-8. 模型保存.
+
+## SECTION 5 : PROJECT REPORT
+
+
+
+## SECTION 6 : MISCELLANEOUS
+
