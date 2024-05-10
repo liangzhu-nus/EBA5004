@@ -15,10 +15,8 @@ The system leverages advanced algorithms, including a BiLSTM-CRF model for NER a
 
 By automating the symptom recognition and disease matching process, this AI system offers several commercial benefits. It improves medical service profitability by increasing patient throughput and reducing unnecessary referrals. Additionally, it reduces operating costs by automating tasks traditionally performed by medical professionals, while enhancing service quality, patient satisfaction, and data-driven decision-making capabilities.
 
-## SECTION 3 : VIDEO
 
-
-## SECTION 4 : USER GUIDE - How to start
+## SECTION 3 : USER GUIDE - How to start
 
 Notes:
 
@@ -176,12 +174,4 @@ Test 1: Follow the official account (new user) and send "I have some abdominal p
 Test 2: (old users) After sending "I've had some abdominal pain lately", keep sending "And there are some red dots on the left side of the abdomen".
 ```
 
-
-
-
-## SECTION 5 : PROJECT REPORT
-
-
-
-## SECTION 6 : MISCELLANEOUS
-
+Note: Datasets are located in `offline/datasets`
