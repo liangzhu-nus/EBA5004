@@ -1,4 +1,4 @@
-# ISY5001
+# EBA5004
 ## SECTION 1 : PROJECT TITLE
 
 ### AI-Doctor - Task-oriented intelligent dialogue system.
@@ -7,8 +7,13 @@
 
 ## SECTION 2 : EXECUTIVE SUMMARY
 
+This report presents a sophisticated AI system designed to provide efficient and accurate medical consultations by recognizing user-reported symptoms and matching them with potential diseases. The system integrates two key components: Named Entity Recognition (NER) and Named Entity Review (NERev), which work in tandem to precisely identify relevant symptoms from user inputs and validate their accuracy.
 
+The system's architecture comprises three main stages: Data Preparation, Data Parsing and Information Extraction, and Data Applications. In the Data Preparation stage, raw text data related to diseases and symptoms is collected, cleaned, and formatted for subsequent processing. The Data Parsing and Information Extraction stage utilizes the NER module to detect disease entities and symptoms in the text, followed by the NERev module that reviews and filters out irrelevant or incorrect entities. The resulting structured information is then utilized in the Data Applications stage for various purposes, including creating a Knowledge Graph, Text Classification, and providing Auxiliary Diagnosis and Treatment support.
 
+The system leverages advanced algorithms, including a BiLSTM-CRF model for NER and an RNN architecture with pre-trained BERT embeddings for NERev. These models are trained on carefully curated datasets, enabling the system to accurately recognize and validate medical entities.
+
+By automating the symptom recognition and disease matching process, this AI system offers several commercial benefits. It improves medical service profitability by increasing patient throughput and reducing unnecessary referrals. Additionally, it reduces operating costs by automating tasks traditionally performed by medical professionals, while enhancing service quality, patient satisfaction, and data-driven decision-making capabilities.
 
 ## SECTION 3 : VIDEO
 
